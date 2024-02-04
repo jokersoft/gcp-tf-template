@@ -13,6 +13,7 @@ terraform {
 }
 
 provider "google" {
+  credentials = file("/Users/yaroslavsklabinskyi/Downloads/infrastructure-template-413116-295bb37a8c62.json")
   project = var.project
   region  = var.region
 }
