@@ -1,6 +1,21 @@
 resource "google_compute_instance_template" "app" {
-  name         = "${var.app_name}-template"
+  # The name has to be updated every time because reasons: https://github.com/hashicorp/terraform-provider-google/issues/10962
+  # hence random suffix
+  name         = "${var.app_name}-template-${random_string.stateless_suffix.result}"
   machine_type = "e2-micro"
+
+  scheduling {
+    automatic_restart   = true
+    min_node_cpus       = 0
+    on_host_maintenance = "MIGRATE"
+    preemptible         = null
+    provisioning_model  = "STANDARD"
+  }
+
+  service_account {
+    email  = google_service_account.ops_agent_service_account.email
+    scopes = ["https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/monitoring"]
+  }
 
   network_interface {
     network = "default"
@@ -13,11 +28,63 @@ resource "google_compute_instance_template" "app" {
     source_image = data.google_compute_image.debian_image.self_link
   }
 
+  # see https://cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/third-party/nginx
   metadata_startup_script = <<-EOF
     #!/bin/bash
     apt-get update
     apt-get install -y nginx
+    sudo tee /etc/nginx/conf.d/status.conf > /dev/null << EOT
+server {
+   listen 80;
+   server_name 127.0.0.1;
+   location /nginx_status {
+       stub_status on;
+       access_log on;
+       allow 127.0.0.1;
+       deny all;
+   }
+   location / {
+       root /dev/null;
+   }
+}
+EOT
+
+    # Reload Nginx to apply changes
+    sudo systemctl reload nginx
+
     systemctl start nginx
+
+    curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
+    sudo bash add-google-cloud-ops-agent-repo.sh --also-install
+
+    echo "Applying custom Ops Agent configuration..."
+    sudo tee /etc/google-cloud-ops-agent/config.yaml > /dev/null <<EOT
+metrics:
+  receivers:
+    nginx:
+      type: nginx
+      stub_status_url: http://127.0.0.1:80/nginx_status
+  service:
+    pipelines:
+      nginx:
+        receivers:
+          - nginx
+logging:
+  receivers:
+    nginx_access:
+      type: nginx_access
+    nginx_error:
+      type: nginx_error
+  service:
+    pipelines:
+      nginx:
+        receivers:
+          - nginx_access
+          - nginx_error
+EOT
+
+    sudo systemctl restart google-cloud-ops-agent.service
+    sleep 60
   EOF
 
   lifecycle {
