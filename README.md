@@ -1,2 +1,2 @@
 # gcp-tf-template
-Terraform template for quick-start on GCP.
+Terraform templates for quick-start on GCP.

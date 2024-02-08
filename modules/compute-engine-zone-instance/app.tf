@@ -28,6 +28,7 @@ resource "google_compute_instance_template" "app" {
     source_image = data.google_compute_image.debian_image.self_link
   }
 
+  # TODO: make it a configuration choice
   # see https://cloud.google.com/stackdriver/docs/solutions/agents/ops-agent/third-party/nginx
   metadata_startup_script = <<-EOF
     #!/bin/bash
@@ -62,10 +63,10 @@ EOT
   tags = ["http-server"]
 }
 
-resource "google_compute_region_instance_group_manager" "app" {
-  name               = "${var.app_name}-group"
+resource "google_compute_instance_group_manager" "app" {
+  name               = "${var.app_name}-group-mngr"
   base_instance_name = var.app_name
-  region             = var.region
+  zone               = var.zone
   target_size        = var.app_target_size
 
   version {
@@ -103,7 +104,7 @@ resource "google_compute_backend_service" "app" {
   health_checks = [google_compute_health_check.http.self_link]
 
   backend {
-    group = google_compute_region_instance_group_manager.app.instance_group
+    group = google_compute_instance_group_manager.app.instance_group
   }
 }
 
