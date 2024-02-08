@@ -33,20 +33,9 @@ resource "google_compute_instance_template" "app" {
     #!/bin/bash
     apt-get update
     apt-get install -y nginx
-    sudo tee /etc/nginx/conf.d/status.conf > /dev/null << EOT
-server {
-   listen 80;
-   server_name 127.0.0.1;
-   location /nginx_status {
-       stub_status on;
-       access_log on;
-       allow 127.0.0.1;
-       deny all;
-   }
-   location / {
-       root /dev/null;
-   }
-}
+
+    cat <<'EOT' > /etc/nginx/conf.d/status.conf
+${file("${path.module}/config/nginx/conf.d/status.conf")}
 EOT
 
     # Reload Nginx to apply changes
@@ -58,29 +47,8 @@ EOT
     sudo bash add-google-cloud-ops-agent-repo.sh --also-install
 
     echo "Applying custom Ops Agent configuration..."
-    sudo tee /etc/google-cloud-ops-agent/config.yaml > /dev/null <<EOT
-metrics:
-  receivers:
-    nginx:
-      type: nginx
-      stub_status_url: http://127.0.0.1:80/nginx_status
-  service:
-    pipelines:
-      nginx:
-        receivers:
-          - nginx
-logging:
-  receivers:
-    nginx_access:
-      type: nginx_access
-    nginx_error:
-      type: nginx_error
-  service:
-    pipelines:
-      nginx:
-        receivers:
-          - nginx_access
-          - nginx_error
+    cat <<'EOT' > /etc/google-cloud-ops-agent/config.yaml
+${file("${path.module}/config/etc/google-cloud-ops-agent/config.yaml")}
 EOT
 
     sudo systemctl restart google-cloud-ops-agent.service
@@ -99,9 +67,19 @@ resource "google_compute_region_instance_group_manager" "app" {
   base_instance_name = var.app_name
   region             = var.region
   target_size        = var.app_target_size
+
   version {
+    name              = random_string.stateless_suffix.result
     instance_template = google_compute_instance_template.app.id
   }
+
+  update_policy {
+    type                  = "PROACTIVE"
+    minimal_action        = "REPLACE"
+    max_surge_fixed       = length(data.google_compute_zones.available)
+    max_unavailable_fixed = 0
+  }
+
   named_port {
     name = "http"
     port = 80
