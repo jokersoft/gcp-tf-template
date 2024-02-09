@@ -1,12 +1,23 @@
-resource "google_bigquery_dataset" "log_dataset" {
-  dataset_id                  = "${replace(var.app_name, "-", "_")}_logs"
-  location                    = "EU"
-  default_table_expiration_ms = 3600000
-}
-
-resource "google_logging_project_sink" "bigquery_sink" {
+resource "google_logging_project_sink" "sink" {
   name                   = "${var.app_name}-log-sink"
-  destination            = "bigquery.googleapis.com/projects/${var.project}/datasets/${google_bigquery_dataset.log_dataset.dataset_id}"
+  destination            = "storage.googleapis.com/${google_storage_bucket.logs_bucket.name}"
   filter                 = "resource.type=gce_instance AND logName=projects/${var.project}/logs/nginx-access"
   unique_writer_identity = true
 }
+
+resource "google_storage_bucket" "logs_bucket" {
+  name     = "${var.app_name}-logs"
+  location = var.region
+  storage_class = "REGIONAL"
+}
+
+resource "google_project_iam_binding" "gcs-bucket-writer" {
+  project = var.project
+  role    = "roles/storage.objectCreator"
+
+  members = [
+    google_logging_project_sink.sink.writer_identity,
+  ]
+}
+
+# log format can be adjusted: https://gist.github.com/dirkjonker/679622b9e6fc713165d35aa3b79a882f
