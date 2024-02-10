@@ -108,6 +108,7 @@ resource "google_compute_backend_service" "app" {
   }
 }
 
+# TODO: rm when gateway is ready
 resource "google_compute_url_map" "http" {
   name            = "${var.app_name}-url-map"
   default_service = google_compute_backend_service.app.self_link

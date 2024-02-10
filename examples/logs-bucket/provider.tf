@@ -1,7 +1,7 @@
 terraform {
   backend "gcs" {
     bucket = "state-bucket-00"
-    prefix = "terraform/state/example-app"
+    prefix = "terraform/state/example-log-bucket"
   }
 
   required_providers {

@@ -1,14 +1,12 @@
 resource "google_logging_project_sink" "sink" {
   name                   = "${var.app_name}-log-sink"
-  destination            = "storage.googleapis.com/${google_storage_bucket.logs_bucket.name}"
-  filter                 = "resource.type=gce_instance AND logName=projects/${var.project}/logs/nginx-access"
+  destination            = "storage.googleapis.com/${var.logs_bucket_name}"
+  filter                 = "resource.type=gce_instance AND logName=projects/${var.project}/logs/nginx_access"
   unique_writer_identity = true
 }
 
-resource "google_storage_bucket" "logs_bucket" {
-  name     = "${var.app_name}-logs"
-  location = var.region
-  storage_class = "REGIONAL"
+data "google_storage_bucket" "logs_bucket" {
+  name = var.logs_bucket_name
 }
 
 resource "google_project_iam_binding" "gcs-bucket-writer" {

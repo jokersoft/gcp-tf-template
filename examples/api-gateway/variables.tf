@@ -18,7 +18,3 @@ variable "app_target_size" {
   type = number
   default = 1
 }
-
-variable "logs_bucket_name" {
-  type = string
-}
