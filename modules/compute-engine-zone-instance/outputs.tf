@@ -1,11 +1,7 @@
-output "service_self_link" {
-  value = google_compute_backend_service.app.self_link
+output "load_balancer_ip" {
+  value = google_compute_global_forwarding_rule.http.ip_address
 }
 
-output "instance_group_instances" {
-  value = google_compute_instance_group_manager.app.instance_group
-}
-
-output "log_sink_writer_identity" {
-  value = google_logging_project_sink.sink.writer_identity
+output "service_dns_name" {
+  value = replace(google_dns_record_set.app.name, "/[.]$/", "")
 }

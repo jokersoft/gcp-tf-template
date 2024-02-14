@@ -15,7 +15,7 @@ resource "google_api_gateway_api" "gateway" {
 resource "google_api_gateway_api_config" "gateway" {
   provider      = google-beta
   api           = google_api_gateway_api.gateway.api_id
-  api_config_id = "${var.gateway_name}-config"
+  api_config_id = "${var.gateway_name}-config-${random_string.stateless_suffix.result}"
   project       = var.project
 
   openapi_documents {
@@ -25,7 +25,7 @@ resource "google_api_gateway_api_config" "gateway" {
         api_gateway_id  = "api-gateway"
         region          = var.region
         project         = var.project
-        service_1_address = data.terraform_remote_state.service_1.outputs.app_self_ink
+        service_1_address = data.terraform_remote_state.service_1.outputs.service_dns_name
       }))
     }
   }
