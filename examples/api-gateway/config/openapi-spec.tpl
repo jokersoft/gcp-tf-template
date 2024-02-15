@@ -13,7 +13,7 @@ paths:
       description: test description
       operationId: getAppData # Unique operation ID
       x-google-backend:
-        address: ${service_address}
+        address: http://${service_1_address}
       responses:
         200:
           description: A successful response

@@ -107,37 +107,3 @@ resource "google_compute_backend_service" "app" {
     group = google_compute_instance_group_manager.app.instance_group
   }
 }
-
-# TODO: rm when gateway is ready
-resource "google_compute_url_map" "http" {
-  name            = "${var.app_name}-url-map"
-  default_service = google_compute_backend_service.app.self_link
-}
-
-resource "google_compute_target_http_proxy" "http" {
-  name    = "${var.app_name}-http-proxy"
-  url_map = google_compute_url_map.http.self_link
-}
-
-resource "google_compute_global_forwarding_rule" "http" {
-  name       = "${var.app_name}-lb"
-  target     = google_compute_target_http_proxy.http.self_link
-  port_range = "80"
-}
-
-resource "google_compute_firewall" "allow_http" {
-  name    = "allow-http"
-  network = "default"
-
-  allow {
-    protocol = "tcp"
-    ports    = ["80"]
-  }
-
-  // The following target tags should match the tags applied to your instances.
-  // This assumes instances are tagged as 'http-server' for HTTP traffic.
-  target_tags = ["http-server"]
-
-  // Source ranges for the world (restrict this further based on requirements).
-  source_ranges = ["0.0.0.0/0"]
-}

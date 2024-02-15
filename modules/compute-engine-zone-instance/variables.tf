@@ -19,6 +19,10 @@ variable "app_target_size" {
   default = 1
 }
 
+variable "managed_zone_name" {
+  type = string
+}
+
 variable "logs_bucket_name" {
   type = string
 }

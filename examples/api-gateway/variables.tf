@@ -6,15 +6,6 @@ variable "region" {
   type = string
 }
 
-variable "zone" {
+variable "gateway_name" {
   type = string
-}
-
-variable "app_name" {
-  type = string
-}
-
-variable "app_target_size" {
-  type = number
-  default = 1
 }

@@ -1,21 +1,21 @@
 resource "google_api_gateway_gateway" "gateway" {
   provider   = google-beta
   api_config = google_api_gateway_api_config.gateway.id
-  gateway_id = "my-gateway"
+  gateway_id = var.gateway_name
   project    = var.project
-  region     = "europe-west2"
+  region     = var.region
 }
 
 resource "google_api_gateway_api" "gateway" {
   provider = google-beta
-  api_id   = "my-api"
+  api_id   = var.gateway_name
   project  = var.project
 }
 
 resource "google_api_gateway_api_config" "gateway" {
   provider      = google-beta
   api           = google_api_gateway_api.gateway.api_id
-  api_config_id = "my-config"
+  api_config_id = "${var.gateway_name}-config-${random_string.stateless_suffix.result}"
   project       = var.project
 
   openapi_documents {
@@ -25,7 +25,7 @@ resource "google_api_gateway_api_config" "gateway" {
         api_gateway_id  = "api-gateway"
         region          = var.region
         project         = var.project
-        service_address = module.nginx_gateway.service_self_link
+        service_1_address = data.terraform_remote_state.service_1.outputs.service_dns_name
       }))
     }
   }
@@ -52,18 +52,3 @@ resource "google_api_gateway_gateway_iam_policy" "policy" {
   gateway     = google_api_gateway_gateway.gateway.gateway_id
   policy_data = data.google_iam_policy.admin.policy_data
 }
-
-## file
-#resource "local_file" "openapi_spec" {
-#  filename = "${path.module}/openapi-spec.yaml"
-#  content  = templatefile("${path.module}/config/openapi-spec.tpl", {
-#    api_gateway_id  = "api-gateway"
-#    region          = var.region
-#    project         = var.project
-#    service_address = module.nginx_gateway.service_self_link
-#  })
-#}
-
-#data "local_file" "openapi_spec" {
-#  filename = "openapi-spec.yaml"
-#}
