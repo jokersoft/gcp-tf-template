@@ -14,7 +14,11 @@ resource "google_compute_instance_template" "app" {
 
   service_account {
     email  = google_service_account.ops_agent_service_account.email
-    scopes = ["https://www.googleapis.com/auth/logging.write", "https://www.googleapis.com/auth/monitoring"]
+    scopes = [
+      "https://www.googleapis.com/auth/logging.write",
+      "https://www.googleapis.com/auth/monitoring",
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
   }
 
   network_interface {
@@ -33,7 +37,7 @@ resource "google_compute_instance_template" "app" {
   metadata_startup_script = <<-EOF
     #!/bin/bash
     apt-get update
-    apt-get install -y nginx
+    apt-get install -y nginx postgresql-client
 
     cat <<'EOT' > /etc/nginx/conf.d/status.conf
 ${file("${path.module}/config/nginx/conf.d/status.conf")}
@@ -53,7 +57,34 @@ ${file("${path.module}/config/etc/google-cloud-ops-agent/config.yaml")}
 EOT
 
     sudo systemctl restart google-cloud-ops-agent.service
-    sleep 60
+    # sleep 60
+
+    # Download and install the Cloud SQL Proxy
+    wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+    sudo chmod +x cloud_sql_proxy
+
+    # Create directory for the Cloud SQL instance's Unix socket
+    sudo mkdir -p /cloudsql
+    sudo chown -R $(whoami) /cloudsql
+
+    # Start the Cloud SQL Proxy
+    sudo touch /tmp/cloud_sql_proxy.log
+    sudo chmod 644 /tmp/cloud_sql_proxy.log
+    sudo nohup ./cloud_sql_proxy -dir=/cloudsql -instances=infrastructure-template-413116:europe-west10:example-postgres-instance=tcp:5432 > /tmp/cloud_sql_proxy.log 2>&1 &
+
+    # Wait for Cloud SQL Proxy to be ready
+    while ! nc -z localhost 5432; do
+      sleep 1
+    done
+
+    # Environment variables for database connection
+    echo "export DB_USER='user'" >> /etc/environment
+    echo "export DB_PASS='password'" >> /etc/environment
+    echo "export DB_NAME='database-name'" >> /etc/environment
+
+    # Reload environment variables
+    source /etc/environment
+
   EOF
 
   lifecycle {
