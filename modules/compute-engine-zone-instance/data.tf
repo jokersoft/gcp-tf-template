@@ -9,11 +9,11 @@ data "google_compute_image" "debian_image" {
   project = "debian-cloud"
 }
 
-#resource "null_resource" "recreate_trigger" {
-#  triggers = {
-#    always_recreate = timestamp()
-#  }
-#}
+resource "null_resource" "recreate_trigger" {
+  triggers = {
+    always_recreate = timestamp()
+  }
+}
 
 resource "random_string" "stateless_suffix" {
   length  = 8
@@ -21,7 +21,7 @@ resource "random_string" "stateless_suffix" {
   upper   = false
   numeric = true
 
-#  keepers = {
-#    always_recreate = null_resource.recreate_trigger.id
-#  }
+  keepers = {
+    always_recreate = null_resource.recreate_trigger.id
+  }
 }

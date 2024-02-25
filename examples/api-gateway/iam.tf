@@ -33,13 +33,3 @@ resource "google_project_iam_member" "metric_writer" {
   role    = "roles/monitoring.metricWriter"
   member  = "serviceAccount:${google_service_account.gateway.email}"
 }
-
-# making Gateway public
-#resource "google_api_gateway_gateway_iam_member" "public_invoker" {
-#  provider = google-beta
-#  project  = "infrastructure-template-413116"
-#  region   = "europe-west2"
-#  gateway  = "projects/infrastructure-template-413116/locations/europe-west2/gateways/template-api"
-#  role     = "roles/apigateway.invoker"
-#  member   = "allUsers"
-#}
